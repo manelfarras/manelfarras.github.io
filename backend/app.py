@@ -51,10 +51,10 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == "__main__":
     if os.environ.get('BANK_MODE') == 'live':
-        from backend.bank import monthly_snapshot
+        from backend.bank import snapshot
         try:
-            LIVE_DATA = monthly_snapshot()
-            LIVE_DATA['annual'] = summary(LIVE_DATA['transactions'], LIVE_DATA['start'], LIVE_DATA['today'])
+            LIVE_DATA = snapshot(os.environ.get('BANK_PERIOD', 'month'),
+                progress=lambda row: print(f"Consulta {row['start']} → {row['end']}: {row['received']} movimientos recibidos.", flush=True))
         except Exception:
             raise SystemExit('No se ha podido cargar el banco. No se mostrarán datos ficticios como reales.') from None
         print('Consulta bancaria cargada en memoria; correo desactivado.', flush=True)
