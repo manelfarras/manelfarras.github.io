@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mi balance · Finanzas personales</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#172e3c;font:16px system-ui,sans-serif}main{max-width:1100px;margin:auto;padding:40px 24px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}h1{font-size:34px;margin:6px 0}h2{font-size:19px}small,.muted{color:#546675}.badge{background:#fff0c9;color:#745300;padding:9px 14px;border-radius:20px;font-size:13px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px;margin:28px 0}.card,section{background:white;border:1px solid #e0e6ea;border-radius:16px;padding:24px}.value{font-size:29px;font-weight:650;margin-top:15px}.positive{color:#11775f}section{margin-bottom:20px}table{width:100%;border-collapse:collapse;text-align:left}td,th{padding:14px 8px;border-bottom:1px solid #edf0f2}th{font-size:12px;color:#546675}td:last-child,th:last-child{text-align:right}.scroll{overflow:auto}p{line-height:1.6}.status{display:flex;gap:10px;align-items:center}.dot{height:9px;width:9px;border-radius:50%;background:#be8700}footer{font-size:13px;color:#546675;margin-top:24px}#error{color:#a43d2f} @media(max-width:600px){header{align-items:flex-start;flex-direction:column}main{padding:24px 14px}section{padding:16px}}
+</style>
+<main>
+<header><div><small>FINANZAS PERSONALES</small><h1>Mi balance</h1><span class="muted" id="period">Resumen de tu año</span></div><span class="badge" id="mode">Cargando datos…</span></header>
+<p id="error" role="alert"></p>
+<div class="grid" id="metrics"></div>
+<section><h2>Previsión del próximo mes</h2><div class="value" id="forecast">—</div><p class="muted">Media de gastos de los últimos tres meses completos. Es una estimación orientativa; todavía no detecta recibos recurrentes ni incluye pagos futuros que añadas.</p></section>
+<section><h2>Tus avisos por correo</h2><p class="status"><span class="dot"></span>Pendientes de configuración · no se envían correos</p><p>Resumen diario · Mes anterior el día 1 · Año anterior el 1 de enero · Avisos de nuevos movimientos.</p><p class="muted">Los resúmenes están previstos para las 08:00, hora de Madrid. El envío de correo todavía no está activado.</p></section>
+<section><h2>Movimientos del periodo</h2><div class="scroll"><table><thead><tr><th>FECHA</th><th>CUENTA</th><th>CONCEPTO</th><th>CATEGORÍA</th><th>IMPORTE</th></tr></thead><tbody id="transactions"></tbody></table></div></section>
+<footer id="source">Cargando información del origen…</footer>
+</main>
+<script>
+const money=(c,currency='EUR')=>new Intl.NumberFormat('es-ES',{style:'currency',currency}).format(c/100);
+async function load(){try{const response=await fetch('/api/dashboard');if(!response.ok)throw Error();const data=await response.json();const live=data.mode==='live';
+document.querySelector('#mode').textContent=live?'Banco conectado · consulta de lectura':'Demostración · datos ficticios';
+document.querySelector('#period').textContent=live?`Del ${data.start} al ${data.today} · ${data.accounts} cuentas · ${data.transactions.length} movimientos`:`Resumen de ${data.year} · hasta ${data.today}`;
+document.querySelector('#source').textContent=live?`Consulta realizada: ${data.updated_at}. Datos en memoria; no se guardan en archivos. Importes brutos: pueden incluir transferencias propias e inversiones. ${data.outside_period||0} movimientos devueltos por el banco fuera del periodo se han excluido por fecha de operación.`:'Datos ficticios. No se ha consultado el banco.';
+if(live){document.querySelector('#forecast').nextElementSibling.textContent='No disponible: solo se ha consultado este mes. Se necesita historial suficiente para calcular una previsión fiable.';}
+for(const [currency,row] of Object.entries(data.annual)){for(const [label,value] of [['Ingresos',row.income],['Gastos',row.expenses],['Flujo neto',row.net]]){const card=document.createElement('div');card.className='card';const title=document.createElement('span');title.textContent=label;const amount=document.createElement('div');amount.className='value';amount.textContent=money(value,currency);card.append(title,amount);document.querySelector('#metrics').append(card)}}
+document.querySelector('#forecast').textContent=Object.entries(data.forecast).map(([c,v])=>money(v,c)).join(' · ')||'Historial insuficiente';for(const item of data.transactions){const tr=document.createElement('tr');for(const text of [item.date,item.account||'Cuenta de ejemplo',item.description,item.category,money(item.amount_cents,item.currency)]){const td=document.createElement('td');td.textContent=text;tr.append(td)}document.querySelector('#transactions').append(tr)}}catch{document.querySelector('#error').textContent='No se han podido cargar los datos. Comprueba que el backend esté iniciado. GitHub Pages por sí solo no ejecuta el backend.'}}load();
+</script>
+</html>
